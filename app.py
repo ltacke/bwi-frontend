@@ -28,20 +28,17 @@ st.sidebar.title("Navigation")
 
 # Hauptmenü
 hauptmenue = st.sidebar.selectbox("Bereich auswählen",
-                                 ["Home", "Bewerber", "Personalstelle", "Adminbereich"])
+                                 ["Home", "Bewerber", "Personalabteilung"])
 
 # Untermenüs
 if hauptmenue == "Home":
     page = "Home"
 elif hauptmenue == "Bewerber":
     page = st.sidebar.selectbox("Bewerber",
-                                ["Bewerbung einreichen", "Bewerbungsfragen beantworten", "Feedback"])
-elif hauptmenue == "Personalstelle":
-    page = st.sidebar.selectbox("Personalstelle",
-                                ["Personalstelle", "Personalleiter", "Feedback Analysis", "Personalrat"])
-elif hauptmenue == "Adminbereich":
-    page = st.sidebar.selectbox("Adminbereich",
-                                ["Job Crew", "Eval Crew", "Scrape Site", "Watson AI"])
+                                ["Bewerbung einreichen", "Bewerbungsfragen beantworten"])
+elif hauptmenue == "Personalabteilung":
+    page = st.sidebar.selectbox("Personalabteilung",
+                                ["Personalstelle", "Personalleiter"])
 
 
 
@@ -54,6 +51,8 @@ SCRAPE_SITE_URL = "http://localhost:8000/scrape_site"  # Hypothetical endpoint f
 WATSON_AI_URL = "http://localhost:8000/watson_ai"  # Hypothetical endpoint for Watson AI
 GET_QUESTION_URL = "http://localhost:8000/get_question"  # Hypothetical endpoint for fetching questions
 SAVE_ANSWER_URL = "http://localhost:8000/save_answer"  # Hypothetical endpoint for saving answers
+ALL_APPLICANTS_URL = "http://localhost:8000/get_applicants_for_job"  # Hypothetical endpoint for fetching all applicants
+GET_ALL_ANALYZES = "http://localhost:8000/get_all_analyses"  # Hypothetical endpoint for fetching all analyzes
 FEEDBACK_FILE = "feedback.json"
 APPLICATIONS_DIR = "applications"
 QUESTIONS_FILE = "questions.json"
@@ -156,146 +155,6 @@ if page == 'Home':
     )
 
 
-# Page content based on navigation
-if page == "Job Crew":
-    st.title("Job Crew Interaction")
-    website_url = st.text_input("Website URL", placeholder="Enter the website URL")
-    job_id = st.text_input("Job ID", placeholder="Enter the job ID")
-    if st.button("Submit to Job Crew"):
-        if website_url and job_id:
-            payload = {"website_url": website_url, "job_id": job_id}
-            try:
-                response = requests.post(JOB_CREW_URL, json=payload)
-                if response.status_code == 200:
-                    st.success("Request was successful!")
-                    st.json(response.json())
-                else:
-                    st.error(f"Error {response.status_code}: {response.text}")
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-        else:
-            st.warning("Please fill out all fields before submitting.")
-
-
-elif page == "Eval Crew":
-    st.title("Eval Crew Interaction")
-    question = st.text_input("Question", placeholder="Enter your question")
-    answer = st.text_input("Answer", placeholder="Enter your answer")
-    if st.button("Submit to Eval Crew"):
-        if question and answer:
-            payload = {"question": question, "answer": answer}
-            try:
-                response = requests.post(EVAL_CREW_URL, json=payload)
-                if response.status_code == 200:
-                    st.success("Request was successful!")
-                    st.json(response.json())
-                else:
-                    st.error(f"Error {response.status_code}: {response.text}")
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-        else:
-            st.warning("Please fill out all fields before submitting.")
-
-
-elif page == "Scrape Site":
-    st.title("Scrape Site Task")
-    scrape_website_url = st.text_input("Website URL for Scraping", placeholder="Enter the website URL to scrape")
-    if st.button("Scrape Website"):
-        if scrape_website_url:
-            payload = {"website_url": scrape_website_url}
-            try:
-                response = requests.post(SCRAPE_SITE_URL, json=payload)
-                if response.status_code == 200:
-                    st.success("Scraping was successful!")
-                    st.json(response.json())
-                else:
-                    st.error(f"Error {response.status_code}: {response.text}")
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-        else:
-            st.warning("Please provide a URL to scrape.")
-
-
-elif page == "Watson AI":
-    st.title("Watson AI Prompt Interaction")
-    prompt_text = st.text_area("Enter your prompt", placeholder="Describe what you want Watson AI to process")
-    if st.button("Submit Prompt"):
-        if prompt_text:
-            payload = {"prompt": prompt_text}
-            try:
-                response = requests.post(WATSON_AI_URL, json=payload)
-                if response.status_code == 200:
-                    st.success("Watson AI Response:")
-                    st.write(response.json().get("response", "No response provided"))
-                else:
-                    st.error(f"Error {response.status_code}: {response.text}")
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-        else:
-            st.warning("Please enter a prompt before submitting.")
-
-
-elif page == "Feedback":
-    st.title("User Feedback")
-    st.write("We value your feedback to improve the app!")
-    user_feedback = st.text_area("Your Feedback", placeholder="Share your thoughts about the app")
-    rating = st.slider("Rate the app", 1, 5, 3, help="1 = Poor, 5 = Excellent")
-    if st.button("Submit Feedback"):
-        if user_feedback:
-            feedback_entry = {"feedback": user_feedback, "rating": rating}
-            try:
-                try:
-                    with open(FEEDBACK_FILE, "r") as f:
-                        feedback_data = json.load(f)
-                except FileNotFoundError:
-                    feedback_data = []
-                feedback_data.append(feedback_entry)
-                with open(FEEDBACK_FILE, "w") as f:
-                    json.dump(feedback_data, f, indent=4)
-                st.success("Thank you for your feedback!")
-            except Exception as e:
-                st.error(f"An error occurred while saving feedback: {e}")
-        else:
-            st.warning("Please provide your feedback before submitting.")
-
-
-elif page == "Feedback Analysis":
-    st.title("Feedback Analysis")
-    try:
-        with open(FEEDBACK_FILE, "r") as f:
-            feedback_data = json.load(f)
-        if feedback_data:
-            df = pd.DataFrame(feedback_data)
-
-            # Layout mit Spalten
-            col1, col2 = st.columns([1, 2])
-
-            # Feedback Data in der ersten Spalte
-            with col1:
-                st.subheader("Feedback Data")
-                st.dataframe(df)
-
-            # Rating Distribution in der zweiten Spalte
-            with col2:
-                st.subheader("Rating Distribution")
-                fig, ax = plt.subplots()
-                df['rating'].value_counts().sort_index().plot(kind='bar', ax=ax, color='r')
-                ax.set_xlabel("Ratings")
-                ax.set_ylabel("Frequency")
-                ax.set_title("Distribution of Ratings")
-                st.pyplot(fig)
-
-            # Comments in voller Breite
-            st.subheader("Comments")
-            for i, row in df.iterrows():
-                st.write(f"**Rating {row['rating']}**: {row['feedback']}")  # st.write für bessere Lesbarkeit
-
-        else:
-            st.warning("No feedback data available.")
-    except FileNotFoundError:
-        st.error("Feedback file not found. Please collect feedback first.")
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
 
 # Page content based on navigation
 if page == "Bewerbung einreichen":
@@ -400,15 +259,18 @@ if page == "Bewerbungsfragen beantworten":
 if page == "Personalstelle":
     st.title("Personalstelle")
 
+    applications = []
+
     # Admin tabs
-    admin_tab = st.tabs(["Eingegangene Bewerbungen", "Bewerbungsfragen und Auswertung", "Bewerberübersicht"])
+    admin_tab = st.tabs(["Eingegangene Bewerbungen", "Bewerbungsfragen und Auswertung"])
 
     # Tab 1: Eingegangene Bewerbungen
     with admin_tab[0]:
         st.subheader("Eingegangene Bewerbungen")
-
+        
         # List all UUIDs from the applications directory
-        applications = [f.split(".")[0] for f in os.listdir(APPLICATIONS_DIR) if f.endswith(".json")]
+        applications = rq.get(ALL_APPLICANTS_URL+"?job_id=Cloud-Engineer-57661").json()
+        print(applications)
         if applications:
             st.write("Liste der Bewerbungen (UUID):")
             for uuid in applications:
@@ -420,22 +282,20 @@ if page == "Personalstelle":
     with admin_tab[1]:
         st.subheader("Bewerbungsfragen und Auswertung")
 
-        # List all UUIDs from the applications directory
-        applications = [f.split(".")[0] for f in os.listdir(APPLICATIONS_DIR) if f.endswith(".json")]
         selected_uuid = st.selectbox("Wähle eine UUID",
                                      applications if applications else ["Keine Bewerbungen verfügbar"])
 
         if selected_uuid and selected_uuid != "Keine Bewerbungen verfügbar":
             # Check for answers file
             answers_file = os.path.join(ANSWERS_DIR, f"{selected_uuid}_answers.json")
-            if os.path.exists(answers_file):
-                with open(answers_file, "r") as f:
-                    answers_data = json.load(f)
+            response = rq.get(GET_ALL_ANALYZES+f"?user_id={selected_uuid}").json()
+            print(response)
+            if response:
 
                 st.write("Antworten des Bewerbers:")
-                for answer_entry in answers_data.get("answers", []):
-                    question = answer_entry.get("question", "Unbekannte Frage")
-                    answer = answer_entry.get("answer", "Keine Antwort")
+                for answer_entry in response:
+                    question = response[answer_entry]["question"]
+                    answer = response[answer_entry]["answer"]
                     st.markdown(f"**{question}:** {answer}")
 
                 # Example: Visualization (replace with real evaluation logic)
@@ -450,22 +310,6 @@ if page == "Personalstelle":
                 st.warning("Dieser Bewerber hat noch keine Fragen beantwortet.")
         else:
             st.warning("Keine gültige UUID ausgewählt.")
-
-    # Tab 3: Bewerberübersicht
-    with admin_tab[2]:
-        st.subheader("Bewerberübersicht")
-        if ratings_data:
-
-            # Display UUIDs and points
-            st.write("Liste der Bewerber mit Punkten:")
-            for uuid, points in ratings_data.items():
-                col1, col2, col3 = st.columns([2, 1, 2])
-                col1.write(f"**UUID:** {uuid}")
-                col2.write(f"Punkte: {points}")
-                col3.button("EINLADEN", key=f"invite_{uuid}", help=f"Einladung für {uuid}")
-                col3.button("NICHT EINLADEN", key=f"decline_{uuid}", help=f"Absage für {uuid}")
-        else:
-            st.warning("Keine Bewertungen vorhanden.")
 
 if page == "Personalleiter":
     st.title("Personalleiter")
@@ -492,15 +336,3 @@ if page == "Personalleiter":
             col4.button("Nicht Einladen", key=f"decline_{uuid}_{index}")
     else:
         st.warning("Keine Bewerberdaten vorhanden.")
-
-if page == 'Personalrat':
-    st.title('Personalrat')
-    st.title("Hinweis auf §78 BPersVG Mitbestimmung")
-    st.write("""
-            **§ 78 BPersVG** des Mitbestimmungsgesetzes regelt die Vertraulichkeit und den Umgang mit personenbezogenen Daten. 
-            Informationen, die Sie im Rahmen des Bewerbungsverfahrens erhalten, unterliegen der Schweigepflicht.
-            """)
-
-    # Button zum Anzeigen einer Warnung
-    if st.button("Alle eingeladenen Bewerbungen anzeigen"):
-        st.warning("§11 BPerVG: Diese Daten unterliegen der Schweigepflicht! Sie sind nicht zur Einsicht berechtigt.")
