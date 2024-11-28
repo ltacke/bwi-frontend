@@ -1,0 +1,19 @@
+{
+    "uuid": "efebe96e-061c-4c8a-b270-dcd7406cc162",
+    "answers": [
+        {
+            "question": "Warum interessieren Sie sich f\u00fcr diese Position?",
+            "answer": "test",
+            "time_taken_seconds": 0.00032210350036621094,
+            "char_count": 4,
+            "chars_per_minute": 745102.116950407
+        },
+        {
+            "question": "Welche Erfahrungen bringen Sie mit?",
+            "answer": "test",
+            "time_taken_seconds": 0.0006251335144042969,
+            "char_count": 4,
+            "chars_per_minute": 383917.9862700229
+        }
+    ]
+}

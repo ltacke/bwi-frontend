@@ -7,5 +7,6 @@ requires-python = ">=3.10"
 dependencies = [
     "importlib>=1.0.4",
     "matplotlib>=3.9.2",
+    "requests>=2.32.3",
     "streamlit>=1.40.2",
 ]

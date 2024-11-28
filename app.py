@@ -8,6 +8,7 @@ import os
 import time
 import subprocess
 import smtplib
+import requests as rq
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -21,39 +22,38 @@ st.set_page_config(
 )
 
 
+
 # Sidebar for navigation
 st.sidebar.title("Navigation")
 
 # Hauptmenü
-hauptmenue = st.sidebar.selectbox(
-    "Bereich auswählen", ["Home", "Bewerber", "Personalstelle", "Adminbereich"]
-)
+hauptmenue = st.sidebar.selectbox("Bereich auswählen",
+                                 ["Home", "Bewerber", "Personalstelle", "Adminbereich"])
 
 # Untermenüs
 if hauptmenue == "Home":
     page = "Home"
 elif hauptmenue == "Bewerber":
-    page = st.sidebar.selectbox(
-        "Bewerber", ["Bewerbung einreichen", "Bewerbungsfragen beantworten", "Feedback"]
-    )
+    page = st.sidebar.selectbox("Bewerber",
+                                ["Bewerbung einreichen", "Bewerbungsfragen beantworten", "Feedback"])
 elif hauptmenue == "Personalstelle":
-    page = st.sidebar.selectbox(
-        "Personalstelle",
-        ["Personalstelle", "Personalleiter", "Feedback Analysis", "Personalrat"],
-    )
+    page = st.sidebar.selectbox("Personalstelle",
+                                ["Personalstelle", "Personalleiter", "Feedback Analysis", "Personalrat"])
 elif hauptmenue == "Adminbereich":
-    page = st.sidebar.selectbox(
-        "Adminbereich", ["Job Crew", "Eval Crew", "Scrape Site", "Watson AI"]
-    )
+    page = st.sidebar.selectbox("Adminbereich",
+                                ["Job Crew", "Eval Crew", "Scrape Site", "Watson AI"])
+
+
 
 
 # Set the FastAPI URLs and Feedback file path
 JOB_CREW_URL = "http://localhost:8000/job_crew"  # Update with your FastAPI endpoint
 EVAL_CREW_URL = "http://localhost:8000/eval_crew"  # Update with your FastAPI endpoint
-SCRAPE_SITE_URL = (
-    "http://localhost:8000/scrape_site"  # Hypothetical endpoint for scrape_site
-)
+CV_CREW_URL = "http://localhost:8000/cv_crew"
+SCRAPE_SITE_URL = "http://localhost:8000/scrape_site"  # Hypothetical endpoint for scrape_site
 WATSON_AI_URL = "http://localhost:8000/watson_ai"  # Hypothetical endpoint for Watson AI
+GET_QUESTION_URL = "http://localhost:8000/get_question"  # Hypothetical endpoint for fetching questions
+SAVE_ANSWER_URL = "http://localhost:8000/save_answer"  # Hypothetical endpoint for saving answers
 FEEDBACK_FILE = "feedback.json"
 APPLICATIONS_DIR = "applications"
 QUESTIONS_FILE = "questions.json"
@@ -73,22 +73,21 @@ try:
 except FileNotFoundError:
     ratings_data = {}
 
-
 # Simulated questions for evaluation
 def fetch_questions():
     # Example questions for simulation
     return [
         "Warum interessieren Sie sich für diese Position?",
         "Welche Erfahrungen bringen Sie mit?",
-        "Was sind Ihre größten Stärken und Schwächen?",
+        "Was sind Ihre größten Stärken und Schwächen?"
     ]
-
 
 # Initialize session state variables
 if "applicant_uuid" not in st.session_state:
     st.session_state.applicant_uuid = None
 if "current_question_index" not in st.session_state:
-    st.session_state.current_question_index = 0
+    st.session_state.current_question_index = 1
+    print("reset")
 if "answers_data" not in st.session_state:
     st.session_state.answers_data = {}
 
@@ -96,6 +95,7 @@ if "answers_data" not in st.session_state:
 # Simulated email function
 def send_email(to_email, subject, message):
     try:
+
         # Email configuration (adjust with actual credentials and server settings)
         sender_email = "your-email@example.com"
         sender_password = "your-password"
@@ -118,11 +118,14 @@ def send_email(to_email, subject, message):
     except Exception as e:
         return False, f"Fehler beim Senden der E-Mail: {e}"
 
-
 # Helper function to call the anonymization script
 def anonymize_pdf(input_pdf_path, output_dir):
-    script_path = "neuesModell/anonymer.py"
-    command = ["python", script_path, input_pdf_path, output_dir]
+    script_path = "anonymer.py"
+    command = [
+        "python", script_path,
+        input_pdf_path,
+        output_dir
+    ]
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=True)
 
@@ -137,7 +140,9 @@ def anonymize_pdf(input_pdf_path, output_dir):
         return None, None, None
 
 
-if page == "Home":
+
+if page == 'Home':
+
     # Create three columns
     col1, col2, col3 = st.columns(3)
 
@@ -148,7 +153,7 @@ if page == "Home":
         st.image("logo.png", width=300)
         st.write(
             "Wir revolutionieren die Personalbeschaffung mit KI - vollautomatisiert und effizient."
-        )
+    )
 
 
 # Page content based on navigation
@@ -194,9 +199,7 @@ elif page == "Eval Crew":
 
 elif page == "Scrape Site":
     st.title("Scrape Site Task")
-    scrape_website_url = st.text_input(
-        "Website URL for Scraping", placeholder="Enter the website URL to scrape"
-    )
+    scrape_website_url = st.text_input("Website URL for Scraping", placeholder="Enter the website URL to scrape")
     if st.button("Scrape Website"):
         if scrape_website_url:
             payload = {"website_url": scrape_website_url}
@@ -215,9 +218,7 @@ elif page == "Scrape Site":
 
 elif page == "Watson AI":
     st.title("Watson AI Prompt Interaction")
-    prompt_text = st.text_area(
-        "Enter your prompt", placeholder="Describe what you want Watson AI to process"
-    )
+    prompt_text = st.text_area("Enter your prompt", placeholder="Describe what you want Watson AI to process")
     if st.button("Submit Prompt"):
         if prompt_text:
             payload = {"prompt": prompt_text}
@@ -237,9 +238,7 @@ elif page == "Watson AI":
 elif page == "Feedback":
     st.title("User Feedback")
     st.write("We value your feedback to improve the app!")
-    user_feedback = st.text_area(
-        "Your Feedback", placeholder="Share your thoughts about the app"
-    )
+    user_feedback = st.text_area("Your Feedback", placeholder="Share your thoughts about the app")
     rating = st.slider("Rate the app", 1, 5, 3, help="1 = Poor, 5 = Excellent")
     if st.button("Submit Feedback"):
         if user_feedback:
@@ -280,9 +279,7 @@ elif page == "Feedback Analysis":
             with col2:
                 st.subheader("Rating Distribution")
                 fig, ax = plt.subplots()
-                df["rating"].value_counts().sort_index().plot(
-                    kind="bar", ax=ax, color="r"
-                )
+                df['rating'].value_counts().sort_index().plot(kind='bar', ax=ax, color='r')
                 ax.set_xlabel("Ratings")
                 ax.set_ylabel("Frequency")
                 ax.set_title("Distribution of Ratings")
@@ -291,9 +288,7 @@ elif page == "Feedback Analysis":
             # Comments in voller Breite
             st.subheader("Comments")
             for i, row in df.iterrows():
-                st.write(
-                    f"**Rating {row['rating']}**: {row['feedback']}"
-                )  # st.write für bessere Lesbarkeit
+                st.write(f"**Rating {row['rating']}**: {row['feedback']}")  # st.write für bessere Lesbarkeit
 
         else:
             st.warning("No feedback data available.")
@@ -308,174 +303,112 @@ if page == "Bewerbung einreichen":
 
     # Input fields for applicant details
     name = st.text_input("Name", placeholder="Vor- und Nachname")
-    address = st.text_area("Adresse", placeholder="Straße, Hausnummer, PLZ, Ort")
+    email = st.text_input("Email", placeholder="Email")
     phone = st.text_input("Telefonnummer", placeholder="z. B. +49 123 4567890")
-    birthday = st.date_input("Geburtstag")
-    job_id = st.selectbox("Job-ID", ["Job1", "Job2", "Job3"])  # Example dropdown values
+    birthdate = st.date_input("Geburtstag")
+    job_id = st.text_input("Job-ID")
 
     # File uploader for the PDF application
     application_file = st.file_uploader("Bewerbung als PDF hochladen", type=["pdf"])
 
     # Submit button
     if st.button("Bewerbung einreichen"):
-        if name and address and phone and application_file:
+        if name and email and phone and application_file:
             try:
                 # Generate a unique filename
                 unique_id = str(uuid.uuid4())
                 file_path = os.path.join(APPLICATIONS_DIR, f"{unique_id}.json")
 
-                # Save the uploaded PDF file
-                pdf_path = os.path.join(APPLICATIONS_DIR, f"{unique_id}.pdf")
-                with open(pdf_path, "wb") as f:
-                    f.write(application_file.read())
-
-                print(pdf_path, ANONYMIZED_DIR)
-
                 # Save application data as JSON
-                application_data = {
+                application_data={
                     "name": name,
-                    "address": address,
+                    "email": email,
                     "phone": phone,
-                    "birthday": birthday.isoformat(),
+                    "birthdate": birthdate.isoformat(),
                     "job_id": job_id,
-                    "application_file": pdf_path,
                 }
-                with open(file_path, "w") as f:
-                    json.dump(application_data, f, indent=4)
+
+                files = {'cv': application_file.read()}
+                response = rq.post(CV_CREW_URL, files=files, data=application_data)
+                print(response.text)
+                
 
                 # Clear fields and display UUID
-                st.success(
-                    f"Bewerbung erfolgreich eingereicht und anonymisiert! Ihre Referenz-ID: {unique_id}"
-                )
+                st.success(f"Bewerbung erfolgreich eingereicht und anonymisiert! Ihre Referenz-ID: {unique_id}")
             except Exception as e:
                 st.error(f"Ein Fehler ist aufgetreten: {e}")
         else:
             st.warning("Bitte alle Felder ausfüllen und ein PDF hochladen.")
 
-# Page content based on navigation
+# Initialize session state
+if "current_question_index" not in st.session_state:
+    st.session_state.current_question_index = 1
+
+if "answers_data" not in st.session_state:
+    st.session_state.answers_data = {"answers": []}
+
 if page == "Bewerbungsfragen beantworten":
     st.title("Bewerbungsfragen beantworten")
 
     # Input field for UUID
-    if not st.session_state.applicant_uuid:
-        st.session_state.applicant_uuid = st.text_input(
-            "Bewerbungs-UUID", placeholder="Geben Sie Ihre UUID ein"
-        )
-    else:
-        st.success(
-            f"Beantworten Sie die Fragen für UUID: {st.session_state.applicant_uuid}"
-        )
+    applicant_uuid = st.text_input("Bewerbungs-UUID", placeholder="Geben Sie Ihre UUID ein")
 
-    # Fetch and display questions dynamically
-    if st.button("Fragen laden") or st.session_state.applicant_uuid:
-        if st.session_state.applicant_uuid:
-            try:
-                # Check if the UUID exists in the applications directory
-                json_file = os.path.join(
-                    APPLICATIONS_DIR, f"{st.session_state.applicant_uuid}.json"
-                )
-                if not os.path.exists(json_file):
-                    st.error("Keine Bewerbung mit dieser UUID gefunden.")
-                    st.session_state.applicant_uuid = None  # Reset UUID
+    # Fetch and display questions
+    if st.button("Fragen laden") or "loaded_questions" in st.session_state:
+        # Load questions only once
+        st.session_state.loaded_questions = True  # Ensure questions are only loaded once
+        try:
+            if st.session_state.current_question_index < 6:
+                # Fetch the current question
+                question_response = rq.get(GET_QUESTION_URL+f"?user_id={applicant_uuid}&n={st.session_state.current_question_index}")
+                if question_response.status_code == 200:
+                    question = question_response.text
                 else:
-                    # Load existing answers or initialize
-                    answers_file = os.path.join(
-                        ANSWERS_DIR, f"{st.session_state.applicant_uuid}_answers.json"
-                    )
-                    if os.path.exists(answers_file):
-                        with open(answers_file, "r") as f:
-                            st.session_state.answers_data = json.load(f)
-                    else:
-                        st.session_state.answers_data = {
-                            "uuid": st.session_state.applicant_uuid,
-                            "answers": [],
-                        }
+                    question = "Fehler beim Laden der Frage. Bitte versuchen Sie es erneut."
 
-                    # Fetch questions and determine the current question
-                    questions = fetch_questions()
+                # Display the current question
+                st.subheader(f"Frage: {question}")
+                answer_text = st.text_area("Ihre Antwort", placeholder="Geben Sie Ihre Antwort ein")
+                
+                # Update the index for the next question
+                st.session_state.current_question_index += 1
 
-                    if st.session_state.current_question_index < len(questions):
-                        question = questions[st.session_state.current_question_index]
-                        st.success(
-                            f"Frage {st.session_state.current_question_index + 1}: {question}"
-                        )
+                # Start timer
+                if "start_time" not in st.session_state:
+                    st.session_state.start_time = time.time()
 
-                        # Start timer
-                        start_time = time.time()
+                # Submit answer
+                if st.button("Antwort einreichen"):
+                    # End timer
+                    end_time = time.time()
+                    time_taken = end_time - st.session_state.start_time
+                    char_count = len(answer_text)
+                    chars_per_minute = (char_count / time_taken) * 60 if time_taken > 0 else 0
+                    response = rq.post(SAVE_ANSWER_URL, json={"user_id":applicant_uuid, "answer":answer_text, "n": st.session_state.current_question_index-1})
 
-                        # Input for the current question
-                        answer_text = st.text_area(
-                            "Ihre Antwort", placeholder="Geben Sie Ihre Antwort ein"
-                        )
+                    if response.status_code != 200:
+                        st.error(f"Ein Fehler ist aufgetreten")
+                    # Reset the timer
+                    st.session_state.start_time = time.time()
 
-                        # Submit answer
-                        if st.button("Antwort einreichen"):
-                            print(st.session_state.current_question_index)
-                            end_time = time.time()
-                            time_taken = end_time - start_time  # Time in seconds
-                            char_count = len(answer_text)
-                            chars_per_minute = (
-                                (char_count / time_taken) * 60 if time_taken > 0 else 0
-                            )
-
-                            # Append answer details to answers_data
-                            st.session_state.answers_data["answers"].append(
-                                {
-                                    "question": question,
-                                    "answer": answer_text,
-                                    "time_taken_seconds": time_taken,
-                                    "char_count": char_count,
-                                    "chars_per_minute": chars_per_minute,
-                                }
-                            )
-
-                            # Save answers to JSON
-                            with open(answers_file, "w") as f:
-                                json.dump(st.session_state.answers_data, f, indent=4)
-                            st.success(
-                                f"Ihre Antwort wurde gespeichert! Zeit: {time_taken:.2f} Sekunden, "
-                                f"Zeichen: {char_count}, Zeichen/Minute: {chars_per_minute:.2f}"
-                            )
-
-                            # Move to the next question
-                            st.session_state.current_question_index += 1
-                    else:
-                        st.info("Sie haben alle Fragen beantwortet.")
-
-                        # Finalize the process
-                        if st.button("Abschluss bestätigen"):
-                            st.success(
-                                "Fragenprozess abgeschlossen! Nächster Schritt wird angestoßen."
-                            )
-                            st.session_state.applicant_uuid = None  # Reset UUID
-                            st.session_state.current_question_index = (
-                                0  # Reset progress
-                            )
-            except Exception as e:
-                st.error(f"Ein Fehler ist aufgetreten: {e}")
-        else:
-            st.warning("Bitte geben Sie eine gültige UUID ein.")
+            else:
+                st.info("Sie haben alle Fragen beantwortet.")
+        except Exception as e:
+            st.error(f"Ein Fehler ist aufgetreten: {e}")
+        
 
 if page == "Personalstelle":
     st.title("Personalstelle")
 
     # Admin tabs
-    admin_tab = st.tabs(
-        [
-            "Eingegangene Bewerbungen",
-            "Bewerbungsfragen und Auswertung",
-            "Bewerberübersicht",
-        ]
-    )
+    admin_tab = st.tabs(["Eingegangene Bewerbungen", "Bewerbungsfragen und Auswertung", "Bewerberübersicht"])
 
     # Tab 1: Eingegangene Bewerbungen
     with admin_tab[0]:
         st.subheader("Eingegangene Bewerbungen")
 
         # List all UUIDs from the applications directory
-        applications = [
-            f.split(".")[0] for f in os.listdir(APPLICATIONS_DIR) if f.endswith(".json")
-        ]
+        applications = [f.split(".")[0] for f in os.listdir(APPLICATIONS_DIR) if f.endswith(".json")]
         if applications:
             st.write("Liste der Bewerbungen (UUID):")
             for uuid in applications:
@@ -488,13 +421,9 @@ if page == "Personalstelle":
         st.subheader("Bewerbungsfragen und Auswertung")
 
         # List all UUIDs from the applications directory
-        applications = [
-            f.split(".")[0] for f in os.listdir(APPLICATIONS_DIR) if f.endswith(".json")
-        ]
-        selected_uuid = st.selectbox(
-            "Wähle eine UUID",
-            applications if applications else ["Keine Bewerbungen verfügbar"],
-        )
+        applications = [f.split(".")[0] for f in os.listdir(APPLICATIONS_DIR) if f.endswith(".json")]
+        selected_uuid = st.selectbox("Wähle eine UUID",
+                                     applications if applications else ["Keine Bewerbungen verfügbar"])
 
         if selected_uuid and selected_uuid != "Keine Bewerbungen verfügbar":
             # Check for answers file
@@ -512,15 +441,8 @@ if page == "Personalstelle":
                 # Example: Visualization (replace with real evaluation logic)
                 st.subheader("Grafische Auswertung (Balkendiagramm)")
                 fig, ax = plt.subplots()
-                scores = [
-                    len(answer_entry.get("answer", ""))
-                    for answer_entry in answers_data.get("answers", [])
-                ]
-                ax.bar(
-                    range(len(scores)),
-                    scores,
-                    tick_label=[f"Frage {i + 1}" for i in range(len(scores))],
-                )
+                scores = [len(answer_entry.get("answer", "")) for answer_entry in answers_data.get("answers", [])]
+                ax.bar(range(len(scores)), scores, tick_label=[f"Frage {i + 1}" for i in range(len(scores))])
                 ax.set_ylabel("Zeichenanzahl")
                 ax.set_title("Antwortlänge pro Frage")
                 st.pyplot(fig)
@@ -533,18 +455,15 @@ if page == "Personalstelle":
     with admin_tab[2]:
         st.subheader("Bewerberübersicht")
         if ratings_data:
+
             # Display UUIDs and points
             st.write("Liste der Bewerber mit Punkten:")
             for uuid, points in ratings_data.items():
                 col1, col2, col3 = st.columns([2, 1, 2])
                 col1.write(f"**UUID:** {uuid}")
                 col2.write(f"Punkte: {points}")
-                col3.button(
-                    "EINLADEN", key=f"invite_{uuid}", help=f"Einladung für {uuid}"
-                )
-                col3.button(
-                    "NICHT EINLADEN", key=f"decline_{uuid}", help=f"Absage für {uuid}"
-                )
+                col3.button("EINLADEN", key=f"invite_{uuid}", help=f"Einladung für {uuid}")
+                col3.button("NICHT EINLADEN", key=f"decline_{uuid}", help=f"Absage für {uuid}")
         else:
             st.warning("Keine Bewertungen vorhanden.")
 
@@ -574,8 +493,8 @@ if page == "Personalleiter":
     else:
         st.warning("Keine Bewerberdaten vorhanden.")
 
-if page == "Personalrat":
-    st.title("Personalrat")
+if page == 'Personalrat':
+    st.title('Personalrat')
     st.title("Hinweis auf §78 BPersVG Mitbestimmung")
     st.write("""
             **§ 78 BPersVG** des Mitbestimmungsgesetzes regelt die Vertraulichkeit und den Umgang mit personenbezogenen Daten. 
@@ -584,6 +503,4 @@ if page == "Personalrat":
 
     # Button zum Anzeigen einer Warnung
     if st.button("Alle eingeladenen Bewerbungen anzeigen"):
-        st.warning(
-            "§11 BPerVG: Diese Daten unterliegen der Schweigepflicht! Sie sind nicht zur Einsicht berechtigt."
-        )
+        st.warning("§11 BPerVG: Diese Daten unterliegen der Schweigepflicht! Sie sind nicht zur Einsicht berechtigt.")
